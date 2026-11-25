@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.managers import ActiveObjectsManager, AllObjectsManager
 
@@ -7,11 +8,11 @@ from apps.core.managers import ActiveObjectsManager, AllObjectsManager
 class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Дата создания",
+        verbose_name=_("Created at"),
     )
     updated_at = models.DateTimeField(
         auto_now=True,
-        verbose_name="Дата обновления",
+        verbose_name=_("Updated at"),
     )
 
     class Meta:
@@ -22,12 +23,12 @@ class SoftDeleteModel(TimeStampedModel):
     is_deleted = models.BooleanField(
         default=False,
         db_index=True,
-        verbose_name="Удалено (мягкое удаление)",
+        verbose_name=_("Is deleted"),
     )
     deleted_at = models.DateTimeField(
         null=True,
         blank=True,
-        verbose_name="Дата мягкого удаления",
+        verbose_name=_("Deleted at"),
     )
 
     objects = ActiveObjectsManager()
