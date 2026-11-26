@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.core.constants import (
     DEFAULT_CANCELLATION_DELTA,
     MAX_BOOKING_HORIZON_DELTA,
+    MAX_GUESTS_COUNT,
     MIN_GUESTS_COUNT,
 )
 from apps.core.models import SoftDeleteModel
@@ -45,7 +46,10 @@ class Booking(SoftDeleteModel):
     )
     guests_count = models.PositiveSmallIntegerField(
         default=1,
-        validators=[MinValueValidator(MIN_GUESTS_COUNT)],
+        validators=[
+            MinValueValidator(MIN_GUESTS_COUNT),
+            MaxValueValidator(MAX_GUESTS_COUNT),
+        ],
         verbose_name=_("Guests count"),
     )
     price_per_night = models.DecimalField(
@@ -53,19 +57,6 @@ class Booking(SoftDeleteModel):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name=_("Fixed price per night (EUR)"),
-    )
-    discount_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name=_("Applied discount (EUR)"),
-    )
-    total_price = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
-        verbose_name=_("Fixed total price (EUR)"),
     )
     status = models.PositiveSmallIntegerField(
         choices=BookingStatus.choices,
@@ -88,12 +79,15 @@ class Booking(SoftDeleteModel):
                 name="chk_booking_checkout_after_checkin",
             ),
             models.CheckConstraint(
-                condition=models.Q(total_price__gt=Decimal("0.00")),
-                name="chk_booking_total_price_positive",
+                condition=models.Q(price_per_night__gt=Decimal("0.00")),
+                name="chk_booking_price_per_night_positive",
             ),
             models.CheckConstraint(
-                condition=models.Q(guests_count__gte=MIN_GUESTS_COUNT),
-                name="chk_booking_guests_positive",
+                condition=models.Q(
+                    guests_count__gte=MIN_GUESTS_COUNT,
+                    guests_count__lte=MAX_GUESTS_COUNT,
+                ),
+                name="chk_booking_guests_range",
             ),
         ]
         indexes = [
@@ -106,6 +100,16 @@ class Booking(SoftDeleteModel):
                 name="idx_bkg_tenant_status",
             ),
         ]
+
+    @property
+    def nights_count(self) -> int:
+        if self.check_in and self.check_out:
+            return max(0, (self.check_out - self.check_in).days)
+        return 0
+
+    @property
+    def total_price(self) -> Decimal:
+        return self.price_per_night * Decimal(self.nights_count)
 
     def clean(self) -> None:
         super().clean()
@@ -134,17 +138,8 @@ class Booking(SoftDeleteModel):
                 )
 
     def save(self, *args, **kwargs):
-        if self._state.adding and self.listing_id and self.check_in and self.check_out:
-            if not self.price_per_night:
-                self.price_per_night = self.listing.price
-            if not self.total_price:
-                nights = (self.check_out - self.check_in).days
-                raw_total = self.price_per_night * Decimal(nights)
-                self.total_price = max(Decimal("0.01"), raw_total - self.discount_amount)
-
         if self.status == BookingStatus.CANCELED and self.canceled_at is None:
             self.canceled_at = timezone.now()
-
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:

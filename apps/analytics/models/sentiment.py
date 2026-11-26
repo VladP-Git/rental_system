@@ -34,13 +34,7 @@ class ReviewSentimentAnalysis(TimeStampedModel):
         verbose_name=_("LLM provider used"),
     )
     generated_response = models.TextField(
-        verbose_name=_("Generated response or compensation text"),
-    )
-    promo_code = models.CharField(
-        max_length=32,
-        blank=True,
-        default="",
-        verbose_name=_("Generated discount promo code"),
+        verbose_name=_("Generated response text"),
     )
     action_status = models.CharField(
         max_length=20,
