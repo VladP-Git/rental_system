@@ -31,7 +31,7 @@ class ListingQuerySet(SoftDeleteQuerySet):
 
 class ActiveListingManager(models.Manager):
     def get_queryset(self) -> ListingQuerySet:
-        return ListingQuerySet(self.model, using=self._db).filter(is_deleted=False)
+        return ListingQuerySet(self.model, using=self._db).filter(deleted_at__isnull=True)
 
 
 class AllListingManager(AllObjectsManager):
@@ -111,7 +111,7 @@ class Address(SoftDeleteModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["postal_code", "city", "street", "house_number", "apartment_number"],
-                condition=models.Q(is_deleted=False),
+                condition=models.Q(deleted_at__isnull=True),
                 name="uq_active_property_address",
             ),
         ]
@@ -213,10 +213,10 @@ class Listing(SoftDeleteModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["is_active", "is_deleted", "price"], name="idx_lst_act_price"),
-            models.Index(fields=["is_active", "is_deleted", "rooms_count", "property_type"], name="idx_lst_act_specs"),
-            models.Index(fields=["is_active", "is_deleted", "-created_at"], name="idx_lst_act_created"),
-            models.Index(fields=["landlord", "is_deleted"], name="idx_lst_landlord"),
+            models.Index(fields=["is_active", "deleted_at", "price"], name="idx_lst_act_price"),
+            models.Index(fields=["is_active", "deleted_at", "rooms_count", "property_type"], name="idx_lst_act_specs"),
+            models.Index(fields=["is_active", "deleted_at", "-created_at"], name="idx_lst_act_created"),
+            models.Index(fields=["landlord", "deleted_at"], name="idx_lst_landlord"),
         ]
 
     def __str__(self) -> str:

@@ -12,7 +12,7 @@ from apps.core.models import SoftDeleteModel
 
 class CustomUserManager(BaseUserManager):
     def get_queryset(self) -> SoftDeleteQuerySet:
-        return SoftDeleteQuerySet(self.model, using=self._db).filter(is_deleted=False)
+        return SoftDeleteQuerySet(self.model, using=self._db).filter(deleted_at__isnull=True)
 
     def create_user(self, email: str, name: str, password: str | None = None, **extra_fields):
         if not email:

@@ -35,12 +35,12 @@ class Review(SoftDeleteModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["booking"],
-                condition=models.Q(is_deleted=False),
+                condition=models.Q(deleted_at__isnull=True),
                 name="uq_active_review_per_booking",
             ),
         ]
         indexes = [
-            models.Index(fields=["is_deleted", "-created_at"], name="idx_rev_active_created"),
+            models.Index(fields=["deleted_at", "-created_at"], name="idx_rev_active_created"),
         ]
 
     def clean(self) -> None:

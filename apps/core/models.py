@@ -20,11 +20,6 @@ class TimeStampedModel(models.Model):
 
 
 class SoftDeleteModel(TimeStampedModel):
-    is_deleted = models.BooleanField(
-        default=False,
-        db_index=True,
-        verbose_name=_("Is deleted"),
-    )
     deleted_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -37,16 +32,18 @@ class SoftDeleteModel(TimeStampedModel):
     class Meta:
         abstract = True
 
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
     def delete(self, using=None, keep_parents=False) -> tuple[int, dict[str, int]]:
-        self.is_deleted = True
         self.deleted_at = timezone.now()
-        self.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+        self.save(update_fields=["deleted_at", "updated_at"])
         return 1, {self._meta.label: 1}
 
     def hard_delete(self, using=None, keep_parents=False) -> tuple[int, dict[str, int]]:
         return super().delete(using=using, keep_parents=keep_parents)
 
     def restore(self) -> None:
-        self.is_deleted = False
         self.deleted_at = None
-        self.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
+        self.save(update_fields=["deleted_at", "updated_at"])

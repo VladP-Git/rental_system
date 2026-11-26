@@ -141,6 +141,10 @@ class Booking(SoftDeleteModel):
                 nights = (self.check_out - self.check_in).days
                 raw_total = self.price_per_night * Decimal(nights)
                 self.total_price = max(Decimal("0.01"), raw_total - self.discount_amount)
+
+        if self.status == BookingStatus.CANCELED and self.canceled_at is None:
+            self.canceled_at = timezone.now()
+
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
