@@ -20,9 +20,9 @@ class BookingRepository:
         check_out: date,
     ) -> bool:
         """
-        Проверяет наличие пересечений дат по индексу idx_bkg_overlap_lookup.
-        Строгое неравенство (check_in < new_check_out и check_out > new_check_in)
-        позволяет заезд нового гостя в день выезда предыдущего.
+        Checks for date overlaps using the idx_bkg_overlap_lookup index.
+        The strict inequality (check_in < new_check_out and check_out > new_check_in)
+        allows a new guest to check in on the same day the previous guest checks out.
         """
         return Booking.objects.filter(
             listing=listing,

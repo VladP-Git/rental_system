@@ -138,8 +138,12 @@ class Booking(SoftDeleteModel):
                 )
 
     def save(self, *args, **kwargs):
-        if self.status == BookingStatus.CANCELED and self.canceled_at is None:
-            self.canceled_at = timezone.now()
+        if self.status == BookingStatus.CANCELED:
+            if self.canceled_at is None:
+                self.canceled_at = timezone.now()
+        elif self.canceled_at is not None:
+            self.canceled_at = None
+
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
